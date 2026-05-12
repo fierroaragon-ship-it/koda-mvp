@@ -14,6 +14,7 @@
     "clsx": "latest",
     "framer-motion": "latest",
     "lucide-react": "latest",
+    "openai": "^6.37.0",
     "react": "latest",
     "react-dom": "latest",
     "tailwind-merge": "latest",
