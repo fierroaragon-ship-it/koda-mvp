@@ -10,6 +10,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.105.4",
     "@vitejs/plugin-react": "latest",
     "clsx": "latest",
     "framer-motion": "latest",
