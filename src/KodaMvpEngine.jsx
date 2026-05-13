@@ -2,35 +2,22 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "./lib/supabaseClient";
 
 const characterOptions = [
-  { id: "bear", es: "Osita Koda", en: "Koda Bear", emoji: "🧸" },
-  { id: "girl", es: "Niña Koda", en: "Koda Girl", emoji: "👧" },
-  { id: "boy", es: "Niño Koda", en: "Koda Boy", emoji: "👦" },
+  { id: "bear", es: "Osita Koda", en: "Koda Bear", emoji: "🧸", toneEs: "tierna, cálida y protectora", toneEn: "warm, gentle and protective" },
+  { id: "girl", es: "Niña Koda", en: "Koda Girl", emoji: "👧", toneEs: "dulce, cercana y juguetona", toneEn: "sweet, close and playful" },
+  { id: "boy", es: "Niño Koda", en: "Koda Boy", emoji: "👦", toneEs: "amigable, curioso y tranquilo", toneEn: "friendly, curious and calm" },
 ];
 
-const intentions = {
-  es: [
-    "Explorar emoción",
-    "Tranquilizar",
-    "Validar miedo",
-    "Validar tristeza",
-    "Romper el hielo",
-    "Animar",
-    "Ansiedad",
-    "Autismo / Sensibilidad",
-  ],
-  en: [
-    "Explore emotion",
-    "Calm down",
-    "Validate fear",
-    "Validate sadness",
-    "Break the ice",
-    "Encourage",
-    "Anxiety",
-    "Autism / Sensory support",
-  ],
-};
+const intentionOptions = [
+  { id: "neutral", es: "Neutro", en: "Neutral" },
+  { id: "calm", es: "Tranquilizar", en: "Calm" },
+  { id: "encourage", es: "Animar", en: "Encourage" },
+  { id: "explore", es: "Explorar emoción", en: "Explore emotion" },
+  { id: "icebreaker", es: "Romper el hielo", en: "Icebreaker" },
+  { id: "sadness", es: "Validar tristeza", en: "Validate sadness" },
+  { id: "fear", es: "Validar miedo", en: "Validate fear" },
+];
 
-const emptyProfessionalProfile = {
+const emptyProfile = {
   name: "",
   email: "",
   specialty: "",
@@ -39,1653 +26,1369 @@ const emptyProfessionalProfile = {
   preferredLanguage: "es",
 };
 
-function cleanForSpeech(text = "") {
-  return text
-    .replace(/[\u{1F300}-\u{1FAFF}]/gu, "")
-    .replace(/[#*_`~>|[\]{}]/g, "")
-    .replace(/\b(emoji|emoticon|corazón rojo|red heart|heart emoji)\b/gi, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+const initialSession = {
+  childName: "Sofi",
+  age: "7",
+  characterId: "bear",
+  intention: "explore",
+  therapistText: "¿Cómo te sentiste hoy?",
+  adaptedText: "",
+  notes: "",
+};
 
-function mapDatabaseRecord(record, language = "es") {
+const copy = {
+  es: {
+    appName: "Koda",
+    loading: "Preparando Koda...",
+    loadingHint: "Si tarda demasiado, limpia la sesión del navegador y recarga.",
+    welcomeEyebrow: "Herramienta de apoyo comunicacional",
+    welcomeTitle: "Koda ayuda al profesional a hablarle al niño con lenguaje amable.",
+    welcomeSubtitle: "Adapta frases clínicas o profesionales a un lenguaje cálido, claro y comprensible para niñas y niños. No diagnostica ni reemplaza al profesional.",
+    createProfile: "Crear perfil profesional",
+    loginProfile: "Ya tengo perfil",
+    legal: "Koda no diagnostica, no trata, no prescribe y no sustituye al profesional de salud, terapia o educación infantil. Solo apoya la adaptación del lenguaje.",
+    registerTitle: "Crear perfil profesional",
+    loginTitle: "Entrar a Koda",
+    registerSubtitle: "Usa un correo real y una contraseña de mínimo 6 caracteres.",
+    loginSubtitle: "Entra con el correo y contraseña que registraste.",
+    fullName: "Nombre completo",
+    email: "Correo",
+    password: "Contraseña",
+    specialty: "Especialidad",
+    country: "País",
+    practiceType: "Tipo de práctica",
+    preferredLanguage: "Idioma de la app",
+    saveProfile: "Crear cuenta",
+    loginButton: "Entrar",
+    back: "Volver",
+    alreadyHaveProfile: "Ya tengo perfil",
+    needCreateProfile: "Necesito crear perfil",
+    requiredProfile: "Completa nombre y correo.",
+    requiredLogin: "Escribe correo y contraseña.",
+    minPassword: "La contraseña debe tener mínimo 6 caracteres.",
+    accountCreatedConfirm: "Cuenta creada. Revisa tu correo para confirmar el acceso. Después entra desde 'Ya tengo perfil'.",
+    dashboardTitle: "Panel de Koda",
+    dashboardSubtitle: "Elige qué quieres hacer ahora.",
+    startSession: "Nueva sesión",
+    history: "Registros guardados",
+    editProfile: "Perfil profesional",
+    signOut: "Cerrar sesión",
+    activeProfessional: "Profesional activo",
+    engineTitle: "Motor de adaptación",
+    childData: "Datos rápidos",
+    childName: "Nombre del niño/a",
+    age: "Edad",
+    character: "Personaje",
+    intention: "Intención",
+    therapistPhrase: "Frase del profesional",
+    therapistPlaceholder: "Escribe aquí lo que quieres decir o preguntar...",
+    adapt: "Adaptar con Koda",
+    speak: "Reproducir voz",
+    stop: "Detener",
+    saveRecord: "Guardar registro",
+    copyText: "Copiar resumen",
+    downloadText: "Descargar resumen",
+    kodaWouldSay: "Koda diría:",
+    adaptedPlaceholder: "Aquí aparecerá la frase adaptada para el niño.",
+    notes: "Notas breves",
+    notesPlaceholder: "Notas internas opcionales. Evita datos sensibles si no son necesarios.",
+    mustLogin: "Necesitas iniciar sesión.",
+    writePhrase: "Escribe una frase primero.",
+    saved: "Registro guardado correctamente.",
+    copied: "Resumen copiado.",
+    profileSaved: "Perfil actualizado correctamente.",
+    noRecords: "Todavía no hay registros guardados.",
+    refresh: "Actualizar",
+    deleteLocalMessage: "Mensaje limpiado.",
+    apiFallback: "No respondió la API. Usé adaptación local para no detener la demo.",
+    voiceFallback: "No respondió la voz de servidor. Usé voz del navegador.",
+    profileTitle: "Perfil profesional",
+    updateProfile: "Actualizar perfil",
+    sessionCreated: "Sesión",
+  },
+  en: {
+    appName: "Koda",
+    loading: "Preparing Koda...",
+    loadingHint: "If it takes too long, clear the browser session and reload.",
+    welcomeEyebrow: "Communication support tool",
+    welcomeTitle: "Koda helps professionals speak to children with kinder language.",
+    welcomeSubtitle: "It adapts clinical or professional phrases into warm, clear, child-friendly language. It does not diagnose or replace the professional.",
+    createProfile: "Create professional profile",
+    loginProfile: "I already have a profile",
+    legal: "Koda does not diagnose, treat, prescribe, or replace health, therapy, or child education professionals. It only supports language adaptation.",
+    registerTitle: "Create professional profile",
+    loginTitle: "Log in to Koda",
+    registerSubtitle: "Use a real email and a password of at least 6 characters.",
+    loginSubtitle: "Log in with the email and password you registered.",
+    fullName: "Full name",
+    email: "Email",
+    password: "Password",
+    specialty: "Specialty",
+    country: "Country",
+    practiceType: "Practice type",
+    preferredLanguage: "App language",
+    saveProfile: "Create account",
+    loginButton: "Log in",
+    back: "Back",
+    alreadyHaveProfile: "I already have a profile",
+    needCreateProfile: "I need to create a profile",
+    requiredProfile: "Complete name and email.",
+    requiredLogin: "Enter email and password.",
+    minPassword: "Password must be at least 6 characters.",
+    accountCreatedConfirm: "Account created. Check your email to confirm access. Then log in from 'I already have a profile'.",
+    dashboardTitle: "Koda Dashboard",
+    dashboardSubtitle: "Choose what you want to do now.",
+    startSession: "New session",
+    history: "Saved records",
+    editProfile: "Professional profile",
+    signOut: "Sign out",
+    activeProfessional: "Active professional",
+    engineTitle: "Adaptation engine",
+    childData: "Quick data",
+    childName: "Child name",
+    age: "Age",
+    character: "Character",
+    intention: "Intention",
+    therapistPhrase: "Professional phrase",
+    therapistPlaceholder: "Write what you want to say or ask...",
+    adapt: "Adapt with Koda",
+    speak: "Play voice",
+    stop: "Stop",
+    saveRecord: "Save record",
+    copyText: "Copy summary",
+    downloadText: "Download summary",
+    kodaWouldSay: "Koda would say:",
+    adaptedPlaceholder: "The child-friendly phrase will appear here.",
+    notes: "Brief notes",
+    notesPlaceholder: "Optional internal notes. Avoid sensitive data if not necessary.",
+    mustLogin: "You need to log in.",
+    writePhrase: "Write a phrase first.",
+    saved: "Record saved successfully.",
+    copied: "Summary copied.",
+    profileSaved: "Profile updated successfully.",
+    noRecords: "No saved records yet.",
+    refresh: "Refresh",
+    deleteLocalMessage: "Message cleared.",
+    apiFallback: "The API did not respond. I used local adaptation to keep the demo moving.",
+    voiceFallback: "Server voice did not respond. I used browser voice.",
+    profileTitle: "Professional profile",
+    updateProfile: "Update profile",
+    sessionCreated: "Session",
+  },
+};
+
+function normalizeProfile(row, fallbackUser) {
+  const metadata = fallbackUser?.user_metadata || {};
+
   return {
-    id: record.id,
-    childName: record.child_name || "",
-    age: record.age || "",
-    language: record.language || language,
-    character: record.character || "",
-    intention: record.intention || "",
-    therapistText: record.therapist_text || "",
-    adaptedText: record.adapted_text || "",
-    notes: record.notes || "",
-    dateISO: record.created_at,
-    dateLabel: new Date(record.created_at).toLocaleString(
-      language === "es" ? "es-MX" : "en-US",
-      {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }
-    ),
+    name: row?.name || metadata.name || "Profesional Koda",
+    email: row?.email || fallbackUser?.email || metadata.email || "",
+    specialty: row?.specialty || metadata.specialty || "",
+    country: row?.country || metadata.country || "",
+    practiceType: row?.practice_type || metadata.practice_type || metadata.practiceType || "",
+    preferredLanguage: row?.preferred_language || metadata.preferred_language || metadata.preferredLanguage || "es",
   };
 }
 
-function formatRecord(record, language = "es") {
+function safeDate(value) {
+  try {
+    return new Date(value).toLocaleString();
+  } catch {
+    return value || "";
+  }
+}
+
+function localAdaptMessage({ text, childName, intention, language }) {
+  const clean = (text || "").trim();
+  const name = (childName || "").trim() || (language === "es" ? "peque" : "friend");
+
+  if (!clean) return "";
+
   if (language === "en") {
-    return `Koda Session Record
+    const openers = {
+      neutral: `Hi ${name} 😊`,
+      calm: `${name}, it is okay, breathe with me for a moment 🌿`,
+      encourage: `Hey ${name}, I have a brave little question for you ✨`,
+      explore: `${name}, I want to understand your heart a little better 🧡`,
+      icebreaker: `Psst, ${name}... I am Koda and I am curious 🧸`,
+      sadness: `${name}, if you felt sad today, that is okay. I am here with you 💛`,
+      fear: `${name}, sometimes fear feels very big, but you are not alone 🌙`,
+    };
 
-Professional: ${record.professionalName || "N/A"}
-Child / Alias: ${record.childName || "N/A"}
-Age: ${record.age || "N/A"}
-Date: ${record.dateLabel || "N/A"}
-Language: ${record.language || "N/A"}
-Character: ${record.character || "N/A"}
-Therapeutic intention: ${record.intention || "N/A"}
+    const opener = openers[intention] || openers.neutral;
+    const lower = clean.toLowerCase();
 
-Professional phrase:
-${record.therapistText || "N/A"}
+    if (lower.includes("how did you feel")) {
+      return `${opener}. Can you tell me slowly how your little heart felt today? You can say just a little bit.`;
+    }
+    if (lower.includes("why")) {
+      return `${opener}. Can you help me understand what happened? I am not here to scold you, only to listen.`;
+    }
+    if (lower.includes("mom") || lower.includes("dad") || lower.includes("family")) {
+      return `${opener}. When you think about your family, what does your tummy or your heart feel?`;
+    }
+    if (lower.includes("fear") || lower.includes("scared")) {
+      return `${opener}. Fear can feel like a big shadow. Would you like to tell me which part felt scary?`;
+    }
+    if (lower.includes("sad") || lower.includes("cry")) {
+      return `${opener}. Sometimes crying is the way the heart talks. Would you like to tell me what hurt your heart?`;
+    }
 
-Koda response:
-${record.adaptedText || "N/A"}
-
-Professional notes:
-${record.notes || "No notes"}
-
-Generated by Koda.`;
+    return `${opener}. ${clean.replace(/\?*$/, "")}... and you can tell me in your own way, slowly, however you want.`;
   }
 
-  return `Registro de sesión Koda
+  const openers = {
+    neutral: `Holaaa ${name} 😊`,
+    calm: `${name}, está bien, respira conmigo tantito 🌿`,
+    encourage: `Oye ${name}, tengo una preguntita valiente para ti ✨`,
+    explore: `${name}, quiero entender tu corazón un poquito 🧡`,
+    icebreaker: `Pss pss, ${name}... soy Koda y tengo curiosidad 🧸`,
+    sadness: `${name}, si hoy te sentiste triste, no pasa nada, aquí estoy contigo 💛`,
+    fear: `${name}, a veces sentir miedo se siente grandote, pero no estás solito 🌙`,
+  };
 
-Profesional: ${record.professionalName || "N/A"}
-Niño / Alias: ${record.childName || "N/A"}
-Edad: ${record.age || "N/A"}
-Fecha: ${record.dateLabel || "N/A"}
-Idioma: ${record.language || "N/A"}
-Personaje: ${record.character || "N/A"}
-Intención: ${record.intention || "N/A"}
+  const opener = openers[intention] || openers.neutral;
+  const lower = clean.toLowerCase();
 
-Frase del profesional:
-${record.therapistText || "N/A"}
+  if (lower.includes("cómo te sentiste") || lower.includes("como te sentiste")) {
+    return `${opener}. ¿Me cuentas con calma cómo se sintió tu corazoncito hoy? Puede ser poquito, no tienes que decir todo de una vez.`;
+  }
+  if (lower.includes("por qué") || lower.includes("porque")) {
+    return `${opener}. ¿Me ayudas a entender qué pasó? No te voy a regañar, solo quiero escucharte.`;
+  }
+  if (lower.includes("mamá") || lower.includes("mama") || lower.includes("papá") || lower.includes("papa") || lower.includes("familia")) {
+    return `${opener}. Cuando piensas en eso de tu familia, ¿qué siente tu pancita o tu corazón?`;
+  }
+  if (lower.includes("miedo")) {
+    return `${opener}. El miedo a veces parece enorme, como una sombra grande. ¿Quieres contarme qué parte te asustó más?`;
+  }
+  if (lower.includes("triste") || lower.includes("llorar")) {
+    return `${opener}. A veces llorar es la forma en que el corazón habla. ¿Quieres contarme qué le dolió a tu corazón?`;
+  }
 
-Respuesta de Koda:
-${record.adaptedText || "N/A"}
+  return `${opener}. ${clean.replace(/\?*$/, "")}... pero me lo puedes contar a tu manera, despacito, como tú quieras.`;
+}
 
-Notas del profesional:
-${record.notes || "Sin notas"}
+function AppShell({ children }) {
+  return <main className="min-h-screen bg-gradient-to-br from-[#FFF8EE] via-[#F7EFE4] to-[#F2E4D5] text-[#2C241D]">{children}</main>;
+}
 
-Generado por Koda.`;
+function TopBar({ language, setLanguage, user, profile, onDashboard, onProfile, onHistory, onSignOut, labels }) {
+  return (
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 pt-4 md:flex-row md:items-center md:justify-between md:px-8 md:pt-6">
+      <button type="button" onClick={onDashboard} className="flex items-center gap-3 text-left">
+        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white text-3xl shadow">🧸</div>
+        <div>
+          <p className="text-2xl font-black leading-none">Koda</p>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#8A7464]">MVP Auth Real</p>
+        </div>
+      </button>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <select value={language} onChange={(event) => setLanguage(event.target.value)} className="rounded-2xl border border-[#E7D8C5] bg-white px-3 py-2 text-sm font-bold shadow-sm outline-none">
+          <option value="es">Español</option>
+          <option value="en">English</option>
+        </select>
+
+        {user && (
+          <>
+            <button type="button" onClick={onHistory} className="rounded-2xl bg-white px-4 py-2 text-sm font-black shadow-sm hover:bg-[#FFF3E4]">{labels.history}</button>
+            <button type="button" onClick={onProfile} className="rounded-2xl bg-white px-4 py-2 text-sm font-black shadow-sm hover:bg-[#FFF3E4]">{labels.editProfile}</button>
+            <button type="button" onClick={onSignOut} className="rounded-2xl bg-[#2C241D] px-4 py-2 text-sm font-black text-white shadow-sm hover:bg-[#46382C]">{labels.signOut}</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MessageBanner({ message, onClear }) {
+  if (!message) return null;
+
+  return (
+    <div className="mx-auto mt-4 flex max-w-6xl items-start justify-between gap-3 rounded-3xl bg-white/90 px-5 py-4 text-sm font-bold text-[#6E4F36] shadow md:px-6">
+      <p>{message}</p>
+      <button type="button" onClick={onClear} className="rounded-full bg-[#FFF1DC] px-3 py-1 text-xs">OK</button>
+    </div>
+  );
+}
+
+function LoadingScreen({ labels }) {
+  return (
+    <AppShell>
+      <section className="mx-auto grid min-h-screen max-w-3xl place-items-center px-4 text-center">
+        <div className="rounded-[2.5rem] bg-white/85 p-8 shadow-2xl">
+          <div className="mx-auto mb-5 grid h-24 w-24 animate-pulse place-items-center rounded-[2rem] bg-[#FFF1DC] text-6xl">🧸</div>
+          <h1 className="text-3xl font-black">{labels.loading}</h1>
+          <p className="mt-3 text-[#6E6258]">{labels.loadingHint}</p>
+        </div>
+      </section>
+    </AppShell>
+  );
+}
+
+function WelcomeScreen({ labels, language, setLanguage, onSignup, onLogin, message, onClear }) {
+  return (
+    <AppShell>
+      <TopBar language={language} setLanguage={setLanguage} labels={labels} />
+      <MessageBanner message={message} onClear={onClear} />
+
+      <section className="mx-auto grid min-h-[calc(100vh-110px)] max-w-6xl items-center gap-8 px-4 py-10 md:grid-cols-[1.1fr_0.9fr] md:px-8">
+        <div>
+          <p className="mb-4 inline-flex rounded-full bg-white/80 px-4 py-2 text-sm font-black text-[#8A5A2F] shadow-sm">{labels.welcomeEyebrow}</p>
+          <h1 className="text-4xl font-black leading-tight md:text-6xl">{labels.welcomeTitle}</h1>
+          <p className="mt-5 max-w-2xl text-lg leading-relaxed text-[#6E6258]">{labels.welcomeSubtitle}</p>
+
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <button type="button" onClick={onSignup} className="rounded-[2rem] bg-[#2C241D] px-7 py-4 text-lg font-black text-white shadow-xl hover:bg-[#46382C]">{labels.createProfile}</button>
+            <button type="button" onClick={onLogin} className="rounded-[2rem] border border-[#E1C9AB] bg-white px-7 py-4 text-lg font-black text-[#5C4A3F] shadow-lg hover:bg-[#FFF8EE]">{labels.loginProfile}</button>
+          </div>
+
+          <p className="mt-6 rounded-3xl bg-white/70 px-5 py-4 text-sm font-semibold leading-relaxed text-[#6E6258] shadow-sm">{labels.legal}</p>
+        </div>
+
+        <div className="rounded-[3rem] bg-white/80 p-5 shadow-2xl">
+          <div className="relative overflow-hidden rounded-[2.5rem] bg-[#FFF1DC]">
+            <img src="/koda-cover.png" alt="Koda" className="h-[430px] w-full object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} />
+            <div className="grid min-h-[430px] place-items-center text-8xl">🧸</div>
+          </div>
+        </div>
+      </section>
+    </AppShell>
+  );
+}
+
+function AuthScreen({ mode, labels, language, setLanguage, initialProfile, busy, message, onClear, onBack, onSubmit, onSwitchMode }) {
+  const isLogin = mode === "login";
+  const [form, setForm] = useState({
+    name: initialProfile?.name || "",
+    email: initialProfile?.email || "",
+    password: "",
+    specialty: initialProfile?.specialty || "",
+    country: initialProfile?.country || "",
+    practiceType: initialProfile?.practiceType || "",
+  });
+
+  function updateField(field, value) {
+    setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    onSubmit({ ...form, email: form.email.trim().toLowerCase(), preferredLanguage: language });
+  }
+
+  return (
+    <AppShell>
+      <TopBar language={language} setLanguage={setLanguage} labels={labels} />
+      <MessageBanner message={message} onClear={onClear} />
+
+      <section className="mx-auto max-w-3xl px-4 py-8 md:px-8">
+        <button type="button" onClick={onBack} className="mb-5 rounded-2xl bg-white/85 px-4 py-3 font-black shadow">{labels.back}</button>
+
+        <form onSubmit={handleSubmit} className="rounded-[2.5rem] bg-white/90 p-6 shadow-2xl md:p-8">
+          <div className="mb-6 flex items-center gap-4">
+            <div className="grid h-20 w-20 place-items-center rounded-3xl bg-[#FFF1DC] text-5xl">🧸</div>
+            <div>
+              <h1 className="text-3xl font-black md:text-5xl">{isLogin ? labels.loginTitle : labels.registerTitle}</h1>
+              <p className="mt-2 text-[#6E6258]">{isLogin ? labels.loginSubtitle : labels.registerSubtitle}</p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {!isLogin && (
+              <label className="md:col-span-2">
+                <span className="mb-2 block text-sm font-bold text-[#6E6258]">{labels.fullName}</span>
+                <input value={form.name} onChange={(event) => updateField("name", event.target.value)} autoComplete="name" className="w-full rounded-2xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]" />
+              </label>
+            )}
+
+            <label>
+              <span className="mb-2 block text-sm font-bold text-[#6E6258]">{labels.email}</span>
+              <input value={form.email} onChange={(event) => updateField("email", event.target.value)} type="email" autoComplete="email" className="w-full rounded-2xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]" />
+            </label>
+
+            <label>
+              <span className="mb-2 block text-sm font-bold text-[#6E6258]">{labels.password}</span>
+              <input value={form.password} onChange={(event) => updateField("password", event.target.value)} type="password" autoComplete={isLogin ? "current-password" : "new-password"} className="w-full rounded-2xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]" />
+            </label>
+
+            {!isLogin && (
+              <>
+                <label>
+                  <span className="mb-2 block text-sm font-bold text-[#6E6258]">{labels.specialty}</span>
+                  <input value={form.specialty} onChange={(event) => updateField("specialty", event.target.value)} placeholder="Psicología infantil / Terapia de lenguaje" className="w-full rounded-2xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]" />
+                </label>
+
+                <label>
+                  <span className="mb-2 block text-sm font-bold text-[#6E6258]">{labels.country}</span>
+                  <input value={form.country} onChange={(event) => updateField("country", event.target.value)} className="w-full rounded-2xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]" />
+                </label>
+
+                <label>
+                  <span className="mb-2 block text-sm font-bold text-[#6E6258]">{labels.practiceType}</span>
+                  <input value={form.practiceType} onChange={(event) => updateField("practiceType", event.target.value)} placeholder="Consulta privada / Clínica / Escuela" className="w-full rounded-2xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]" />
+                </label>
+
+                <label>
+                  <span className="mb-2 block text-sm font-bold text-[#6E6258]">{labels.preferredLanguage}</span>
+                  <select value={language} onChange={(event) => setLanguage(event.target.value)} className="w-full rounded-2xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]">
+                    <option value="es">Español</option>
+                    <option value="en">English</option>
+                  </select>
+                </label>
+              </>
+            )}
+          </div>
+
+          <button type="submit" disabled={busy} className="mt-6 w-full rounded-[2rem] bg-[#2C241D] px-6 py-4 text-lg font-black text-white shadow-xl hover:bg-[#46382C] disabled:cursor-not-allowed disabled:opacity-60">
+            {busy ? "..." : isLogin ? labels.loginButton : labels.saveProfile}
+          </button>
+
+          <button type="button" disabled={busy} onClick={onSwitchMode} className="mt-4 w-full rounded-[2rem] border border-[#E1C9AB] bg-white px-6 py-4 text-lg font-black text-[#5C4A3F] shadow-lg hover:bg-[#FFF8EE] disabled:cursor-not-allowed disabled:opacity-60">
+            {isLogin ? labels.needCreateProfile : labels.alreadyHaveProfile}
+          </button>
+        </form>
+      </section>
+    </AppShell>
+  );
+}
+
+function DashboardScreen({ labels, language, setLanguage, user, profile, message, onClear, onNewSession, onHistory, onProfile, onSignOut }) {
+  return (
+    <AppShell>
+      <TopBar language={language} setLanguage={setLanguage} user={user} profile={profile} labels={labels} onDashboard={() => {}} onProfile={onProfile} onHistory={onHistory} onSignOut={onSignOut} />
+      <MessageBanner message={message} onClear={onClear} />
+
+      <section className="mx-auto max-w-6xl px-4 py-8 md:px-8">
+        <div className="rounded-[2.5rem] bg-white/85 p-6 shadow-2xl md:p-8">
+          <p className="text-sm font-black uppercase tracking-[0.2em] text-[#8A7464]">{labels.activeProfessional}</p>
+          <h1 className="mt-2 text-4xl font-black md:text-6xl">{labels.dashboardTitle}</h1>
+          <p className="mt-3 text-lg text-[#6E6258]">{labels.dashboardSubtitle}</p>
+
+          <div className="mt-6 rounded-3xl bg-[#FFF8EE] p-5 shadow-inner">
+            <p className="text-xl font-black">{profile.name || "Profesional Koda"}</p>
+            <p className="mt-1 text-[#6E6258]">{profile.email || user?.email}</p>
+            <p className="mt-2 text-sm font-bold text-[#8A7464]">{[profile.specialty, profile.practiceType, profile.country].filter(Boolean).join(" · ")}</p>
+          </div>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            <button type="button" onClick={onNewSession} className="rounded-[2rem] bg-[#2C241D] px-6 py-8 text-left text-white shadow-xl hover:bg-[#46382C]">
+              <div className="text-5xl">✨</div>
+              <p className="mt-5 text-2xl font-black">{labels.startSession}</p>
+            </button>
+
+            <button type="button" onClick={onHistory} className="rounded-[2rem] bg-white px-6 py-8 text-left shadow-xl hover:bg-[#FFF8EE]">
+              <div className="text-5xl">📚</div>
+              <p className="mt-5 text-2xl font-black">{labels.history}</p>
+            </button>
+
+            <button type="button" onClick={onProfile} className="rounded-[2rem] bg-white px-6 py-8 text-left shadow-xl hover:bg-[#FFF8EE]">
+              <div className="text-5xl">👤</div>
+              <p className="mt-5 text-2xl font-black">{labels.editProfile}</p>
+            </button>
+          </div>
+
+          <p className="mt-8 rounded-3xl bg-[#F7E7D1] px-5 py-4 text-sm font-semibold leading-relaxed text-[#6E4F36]">{labels.legal}</p>
+        </div>
+      </section>
+    </AppShell>
+  );
+}
+
+function EngineScreen({ labels, language, setLanguage, user, profile, session, setSession, recordsBusy, audioPlaying, message, onClear, onDashboard, onProfile, onHistory, onSignOut, onAdapt, onSpeak, onStopAudio, onSaveRecord, onCopy, onDownload }) {
+  const character = characterOptions.find((item) => item.id === session.characterId) || characterOptions[0];
+
+  function updateSession(field, value) {
+    setSession((current) => ({ ...current, [field]: value }));
+  }
+
+  return (
+    <AppShell>
+      <TopBar language={language} setLanguage={setLanguage} user={user} profile={profile} labels={labels} onDashboard={onDashboard} onProfile={onProfile} onHistory={onHistory} onSignOut={onSignOut} />
+      <MessageBanner message={message} onClear={onClear} />
+
+      <section className="mx-auto grid max-w-6xl gap-5 px-4 py-8 lg:grid-cols-[0.9fr_1.1fr] md:px-8">
+        <div className="rounded-[2rem] bg-white/85 p-5 shadow-xl md:p-7">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#FFF1DC] text-3xl">🧒</div>
+            <h2 className="text-2xl font-black">{labels.childData}</h2>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <label>
+              <span className="mb-2 block text-sm font-bold text-[#6E6258]">{labels.childName}</span>
+              <input value={session.childName} onChange={(event) => updateSession("childName", event.target.value)} className="w-full rounded-2xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]" />
+            </label>
+
+            <label>
+              <span className="mb-2 block text-sm font-bold text-[#6E6258]">{labels.age}</span>
+              <input value={session.age} onChange={(event) => updateSession("age", event.target.value)} className="w-full rounded-2xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]" />
+            </label>
+          </div>
+
+          <div className="mt-5">
+            <span className="mb-2 block text-sm font-bold text-[#6E6258]">{labels.character}</span>
+            <div className="grid gap-3 md:grid-cols-3">
+              {characterOptions.map((option) => (
+                <button key={option.id} type="button" onClick={() => updateSession("characterId", option.id)} className={`rounded-2xl border px-3 py-4 text-left transition ${session.characterId === option.id ? "border-[#C58E55] bg-[#FFF1DC] shadow-md" : "border-[#E7D8C5] bg-white hover:bg-[#FFF7EC]"}`}>
+                  <div className="text-3xl">{option.emoji}</div>
+                  <div className="mt-2 text-sm font-black">{language === "es" ? option.es : option.en}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <label className="mt-5 block">
+            <span className="mb-2 block text-sm font-bold text-[#6E6258]">{labels.intention}</span>
+            <select value={session.intention} onChange={(event) => updateSession("intention", event.target.value)} className="w-full rounded-2xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]">
+              {intentionOptions.map((item) => <option key={item.id} value={item.id}>{language === "es" ? item.es : item.en}</option>)}
+            </select>
+          </label>
+
+          <label className="mt-5 block">
+            <span className="mb-2 block text-sm font-bold text-[#6E6258]">{labels.notes}</span>
+            <textarea value={session.notes} onChange={(event) => updateSession("notes", event.target.value)} placeholder={labels.notesPlaceholder} className="min-h-24 w-full resize-none rounded-3xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]" />
+          </label>
+
+          <p className="mt-5 rounded-3xl bg-[#F7E7D1] px-5 py-4 text-sm font-semibold leading-relaxed text-[#6E4F36]">{labels.legal}</p>
+        </div>
+
+        <div className="rounded-[2rem] bg-white/85 p-5 shadow-xl md:p-7">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#FFF1DC] text-3xl">✨</div>
+            <h2 className="text-2xl font-black">{labels.engineTitle}</h2>
+          </div>
+
+          <label className="block">
+            <span className="mb-2 block text-sm font-bold text-[#6E6258]">{labels.therapistPhrase}</span>
+            <textarea value={session.therapistText} onChange={(event) => updateSession("therapistText", event.target.value)} placeholder={labels.therapistPlaceholder} className="min-h-36 w-full resize-none rounded-3xl border border-[#E7D8C5] bg-white px-5 py-4 text-base leading-relaxed outline-none focus:border-[#C58E55]" />
+          </label>
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <button type="button" onClick={onAdapt} disabled={recordsBusy} className="rounded-2xl bg-[#2C241D] px-5 py-3 font-black text-white shadow hover:bg-[#46382C] disabled:opacity-60">{recordsBusy ? "..." : labels.adapt}</button>
+            <button type="button" onClick={onSpeak} className="rounded-2xl bg-[#FFF1DC] px-5 py-3 font-black text-[#5C4A3F] shadow hover:bg-[#FFE5BD]">{labels.speak}</button>
+            {audioPlaying && <button type="button" onClick={onStopAudio} className="rounded-2xl bg-white px-5 py-3 font-black shadow hover:bg-[#FFF8EE]">{labels.stop}</button>}
+          </div>
+
+          <div className="mt-5 rounded-[2rem] bg-[#2C241D] p-5 text-white shadow-inner md:p-6">
+            <div className="mb-3 flex items-center gap-3">
+              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/15 text-3xl">{character.emoji}</div>
+              <div>
+                <p className="text-sm text-white/60">{labels.kodaWouldSay}</p>
+                <p className="font-black">{language === "es" ? character.es : character.en}</p>
+              </div>
+            </div>
+            <p className="min-h-28 text-lg leading-relaxed text-white/90">{session.adaptedText || labels.adaptedPlaceholder}</p>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <button type="button" onClick={onSaveRecord} disabled={recordsBusy} className="rounded-2xl bg-white px-4 py-3 font-black shadow hover:bg-[#FFF8EE] disabled:opacity-60">{labels.saveRecord}</button>
+            <button type="button" onClick={onCopy} className="rounded-2xl bg-white px-4 py-3 font-black shadow hover:bg-[#FFF8EE]">{labels.copyText}</button>
+            <button type="button" onClick={onDownload} className="rounded-2xl bg-white px-4 py-3 font-black shadow hover:bg-[#FFF8EE]">{labels.downloadText}</button>
+          </div>
+        </div>
+      </section>
+    </AppShell>
+  );
+}
+
+function HistoryScreen({ labels, language, setLanguage, user, profile, records, busy, message, onClear, onDashboard, onProfile, onHistory, onSignOut, onRefresh }) {
+  return (
+    <AppShell>
+      <TopBar language={language} setLanguage={setLanguage} user={user} profile={profile} labels={labels} onDashboard={onDashboard} onProfile={onProfile} onHistory={onHistory} onSignOut={onSignOut} />
+      <MessageBanner message={message} onClear={onClear} />
+
+      <section className="mx-auto max-w-6xl px-4 py-8 md:px-8">
+        <div className="rounded-[2rem] bg-white/85 p-5 shadow-xl md:p-7">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h1 className="text-4xl font-black">{labels.history}</h1>
+              <p className="mt-2 text-[#6E6258]">{records.length} {language === "es" ? "registros" : "records"}</p>
+            </div>
+            <button type="button" onClick={onRefresh} disabled={busy} className="rounded-2xl bg-[#2C241D] px-5 py-3 font-black text-white shadow disabled:opacity-60">{busy ? "..." : labels.refresh}</button>
+          </div>
+
+          <div className="mt-6 space-y-4">
+            {!records.length && <p className="rounded-3xl bg-[#FFF8EE] px-5 py-8 text-center font-bold text-[#6E6258]">{labels.noRecords}</p>}
+
+            {records.map((record) => (
+              <article key={record.id} className="rounded-3xl bg-white p-5 shadow">
+                <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <p className="text-xl font-black">{record.child_name || "Sin nombre"} · {record.age || ""}</p>
+                    <p className="text-sm font-bold text-[#8A7464]">{safeDate(record.created_at)}</p>
+                  </div>
+                  <p className="rounded-full bg-[#FFF1DC] px-3 py-1 text-xs font-black text-[#6E4F36]">{record.intention}</p>
+                </div>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div className="rounded-2xl bg-[#FFF8EE] p-4">
+                    <p className="mb-2 text-xs font-black uppercase tracking-[0.15em] text-[#8A7464]">Original</p>
+                    <p className="text-sm leading-relaxed">{record.therapist_text}</p>
+                  </div>
+                  <div className="rounded-2xl bg-[#2C241D] p-4 text-white">
+                    <p className="mb-2 text-xs font-black uppercase tracking-[0.15em] text-white/60">Koda</p>
+                    <p className="text-sm leading-relaxed">{record.adapted_text}</p>
+                  </div>
+                </div>
+
+                {record.notes && <p className="mt-3 rounded-2xl bg-[#F7E7D1] p-4 text-sm text-[#6E4F36]"><strong>{labels.notes}:</strong> {record.notes}</p>}
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    </AppShell>
+  );
+}
+
+function ProfileScreen({ labels, language, setLanguage, user, profile, busy, message, onClear, onDashboard, onHistory, onSignOut, onSave }) {
+  const [form, setForm] = useState(profile || emptyProfile);
+
+  useEffect(() => {
+    setForm(profile || emptyProfile);
+  }, [profile]);
+
+  function updateField(field, value) {
+    setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    onSave({ ...form, preferredLanguage: language });
+  }
+
+  return (
+    <AppShell>
+      <TopBar language={language} setLanguage={setLanguage} user={user} profile={profile} labels={labels} onDashboard={onDashboard} onProfile={() => {}} onHistory={onHistory} onSignOut={onSignOut} />
+      <MessageBanner message={message} onClear={onClear} />
+
+      <section className="mx-auto max-w-3xl px-4 py-8 md:px-8">
+        <form onSubmit={handleSubmit} className="rounded-[2.5rem] bg-white/90 p-6 shadow-2xl md:p-8">
+          <h1 className="text-4xl font-black">{labels.profileTitle}</h1>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <label className="md:col-span-2">
+              <span className="mb-2 block text-sm font-bold text-[#6E6258]">{labels.fullName}</span>
+              <input value={form.name || ""} onChange={(event) => updateField("name", event.target.value)} className="w-full rounded-2xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]" />
+            </label>
+
+            <label>
+              <span className="mb-2 block text-sm font-bold text-[#6E6258]">{labels.email}</span>
+              <input value={form.email || user?.email || ""} onChange={(event) => updateField("email", event.target.value)} type="email" className="w-full rounded-2xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]" />
+            </label>
+
+            <label>
+              <span className="mb-2 block text-sm font-bold text-[#6E6258]">{labels.specialty}</span>
+              <input value={form.specialty || ""} onChange={(event) => updateField("specialty", event.target.value)} className="w-full rounded-2xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]" />
+            </label>
+
+            <label>
+              <span className="mb-2 block text-sm font-bold text-[#6E6258]">{labels.country}</span>
+              <input value={form.country || ""} onChange={(event) => updateField("country", event.target.value)} className="w-full rounded-2xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]" />
+            </label>
+
+            <label>
+              <span className="mb-2 block text-sm font-bold text-[#6E6258]">{labels.practiceType}</span>
+              <input value={form.practiceType || ""} onChange={(event) => updateField("practiceType", event.target.value)} className="w-full rounded-2xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]" />
+            </label>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <button type="submit" disabled={busy} className="rounded-[2rem] bg-[#2C241D] px-6 py-4 font-black text-white shadow-xl disabled:opacity-60">{busy ? "..." : labels.updateProfile}</button>
+            <button type="button" onClick={onDashboard} className="rounded-[2rem] border border-[#E1C9AB] bg-white px-6 py-4 font-black text-[#5C4A3F] shadow-lg">{labels.back}</button>
+          </div>
+        </form>
+      </section>
+    </AppShell>
+  );
 }
 
 export default function KodaMvpEngine() {
+  const [language, setLanguage] = useState("es");
+  const labels = copy[language] || copy.es;
+
+  const [authReady, setAuthReady] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [recordsBusy, setRecordsBusy] = useState(false);
   const [screen, setScreen] = useState("welcome");
   const [authMode, setAuthMode] = useState("signup");
-  const [language, setLanguage] = useState("es");
-
-  const [authUser, setAuthUser] = useState(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [password, setPassword] = useState("");
-
-  const [professionalProfile, setProfessionalProfile] = useState(
-    emptyProfessionalProfile
-  );
-  const [isProfessionalRegistered, setIsProfessionalRegistered] =
-    useState(false);
-
+  const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(emptyProfile);
   const [records, setRecords] = useState([]);
-  const [sessionNotes, setSessionNotes] = useState("");
-
-  const [childName, setChildName] = useState("Sofi");
-  const [age, setAge] = useState("7");
-  const [characterId, setCharacterId] = useState("bear");
-  const [intention, setIntention] = useState("Explorar emoción");
-  const [therapistText, setTherapistText] = useState(
-    "¿Puedes contarme qué pasó cuando tu papá te gritó?"
-  );
-  const [adaptedText, setAdaptedText] = useState("");
-  const [isWorking, setIsWorking] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [statusMessage, setStatusMessage] = useState("Listo");
-  const [lastSavedMessage, setLastSavedMessage] = useState("");
+  const [session, setSession] = useState(initialSession);
+  const [message, setMessage] = useState("");
+  const [audioPlaying, setAudioPlaying] = useState(false);
 
   const audioRef = useRef(null);
+  const audioUrlRef = useRef(null);
 
-  const character = useMemo(() => {
-    return (
-      characterOptions.find((item) => item.id === characterId) ||
-      characterOptions[0]
-    );
-  }, [characterId]);
-
-  const t = {
-    es: {
-      start: "Crear perfil profesional",
-      login: "Ya tengo perfil",
-      appSubtitle: "Un puente emocional entre el profesional y el niño.",
-      appSupport: "Apoya, comprende y crece juntos.",
-      audience:
-        "Para psicólogos, terapeutas, médicos, psiquiatras infantiles y profesionales del desarrollo infantil",
-
-      registerTitle: "Crear perfil profesional",
-      loginTitle: "Iniciar sesión",
-      registerSubtitle:
-        "Crea una cuenta para guardar tus registros ligeros de Koda en tu base de datos.",
-      loginSubtitle:
-        "Entra con tu correo y contraseña para continuar trabajando con Koda.",
-      fullName: "Nombre completo",
-      email: "Correo",
-      password: "Contraseña",
-      specialty: "Especialidad",
-      country: "País",
-      practiceType: "Tipo de práctica",
-      preferredLanguage: "Idioma preferido",
-      saveProfile: "Crear cuenta",
-      loginButton: "Entrar",
-      updateProfile: "Actualizar perfil",
-      profileSaved: "Perfil creado correctamente.",
-      requiredProfile: "Nombre y correo son obligatorios.",
-      alreadyHaveProfile: "Ya tengo perfil",
-      needCreateProfile: "Crear perfil nuevo",
-      minPassword: "La contraseña debe tener al menos 6 caracteres.",
-      emailPasswordRequired: "Escribe correo y contraseña.",
-      loginError: "No se pudo iniciar sesión. Revisa correo y contraseña.",
-      signOut: "Cerrar sesión",
-
-      dashboardTitle: "Bienvenido a Koda",
-      dashboardSubtitle:
-        "Adapta frases profesionales a lenguaje infantil y guarda registros ligeros, exportables y ordenados.",
-      newSession: "Nueva sesión",
-      continueSession: "Entrar al motor emocional",
-      demoMode: "Modo demo para promoción",
-      language: "Idioma",
-      childName: "Nombre o alias del niño",
-      age: "Edad",
-      character: "Personaje",
-      intention: "Intención",
-      therapistPhrase: "Frase del profesional",
-      placeholder: "Escribe aquí lo que quieres que Koda transforme...",
-      talk: "Hablar con Koda",
-      stop: "Detener",
-      back: "Volver",
-      kodaWouldSay: "Koda diría:",
-      empty: "Aquí aparecerá la frase adaptada para el niño.",
-      safety:
-        "Koda no diagnostica, no trata, no prescribe y no sustituye al profesional de salud, terapia o educación infantil. Solo apoya la adaptación del lenguaje.",
-      quick: "Datos rápidos",
-      engine: "Motor emocional",
-      ready: "Listo",
-      thinking: "Koda está pensando",
-      generatingVoice: "Generando voz",
-      speaking: "Hablando",
-      premiumPending: "Voz premium pendiente",
-      error: "Error",
-
-      feature1Title: "Adaptación de lenguaje",
-      feature1Text: "Convierte frases clínicas o profesionales en lenguaje infantil.",
-      feature2Title: "Bilingüe",
-      feature2Text: "Funciona en español e inglés desde el inicio.",
-      feature3Title: "Voz premium",
-      feature3Text: "Lista para ElevenLabs cuando activemos el plan.",
-      savedRecords: "Registros guardados",
-      profileTitle: "Perfil profesional",
-
-      notes: "Notas breves del profesional",
-      notesPlaceholder: "Opcional: observaciones breves de la sesión...",
-      saveRecord: "Guardar registro",
-      copySummary: "Copiar resumen",
-      downloadSummary: "Descargar resumen",
-      recordSaved: "Registro guardado.",
-      noAdaptedText: "Primero genera una respuesta de Koda.",
-      historyEmpty: "Todavía no hay registros guardados.",
-      deleteRecord: "Eliminar",
-      clearHistory: "Borrar historial",
-      exportInfo:
-        "Koda guarda registros ligeros. Los documentos completos quedan en Drive, nube o sistema clínico del profesional.",
-      mustLogin:
-        "Inicia sesión para guardar registros en tu cuenta profesional.",
-      copied: "Copiado.",
-      copyError: "No se pudo copiar automáticamente.",
-      loading: "Cargando...",
-    },
-    en: {
-      start: "Create professional profile",
-      login: "I already have a profile",
-      appSubtitle: "An emotional bridge between professional and child.",
-      appSupport: "Support, understand, and grow together.",
-      audience:
-        "For psychologists, therapists, physicians, child psychiatrists, and child development professionals",
-
-      registerTitle: "Create professional profile",
-      loginTitle: "Sign in",
-      registerSubtitle:
-        "Create an account to save your lightweight Koda records in your database.",
-      loginSubtitle:
-        "Sign in with your email and password to keep working with Koda.",
-      fullName: "Full name",
-      email: "Email",
-      password: "Password",
-      specialty: "Specialty",
-      country: "Country",
-      practiceType: "Practice type",
-      preferredLanguage: "Preferred language",
-      saveProfile: "Create account",
-      loginButton: "Sign in",
-      updateProfile: "Update profile",
-      profileSaved: "Profile created successfully.",
-      requiredProfile: "Name and email are required.",
-      alreadyHaveProfile: "I already have a profile",
-      needCreateProfile: "Create new profile",
-      minPassword: "Password must be at least 6 characters.",
-      emailPasswordRequired: "Enter email and password.",
-      loginError: "Could not sign in. Check email and password.",
-      signOut: "Sign out",
-
-      dashboardTitle: "Welcome to Koda",
-      dashboardSubtitle:
-        "Adapt professional phrases into child-friendly language and save lightweight, exportable records.",
-      newSession: "New session",
-      continueSession: "Open emotional engine",
-      demoMode: "Demo mode for promotion",
-      language: "Language",
-      childName: "Child name or alias",
-      age: "Age",
-      character: "Character",
-      intention: "Intention",
-      therapistPhrase: "Professional phrase",
-      placeholder: "Write here what you want Koda to transform...",
-      talk: "Talk with Koda",
-      stop: "Stop",
-      back: "Back",
-      kodaWouldSay: "Koda would say:",
-      empty: "The adapted phrase for the child will appear here.",
-      safety:
-        "Koda does not diagnose, treat, prescribe, or replace health, therapy, or child education professionals. It only supports language adaptation.",
-      quick: "Quick info",
-      engine: "Emotional engine",
-      ready: "Ready",
-      thinking: "Koda is thinking",
-      generatingVoice: "Generating voice",
-      speaking: "Speaking",
-      premiumPending: "Premium voice pending",
-      error: "Error",
-
-      feature1Title: "Language adaptation",
-      feature1Text: "Turns clinical or professional phrases into child-friendly language.",
-      feature2Title: "Bilingual",
-      feature2Text: "Built in Spanish and English from the start.",
-      feature3Title: "Premium voice",
-      feature3Text: "Ready for ElevenLabs once the plan is activated.",
-      savedRecords: "Saved records",
-      profileTitle: "Professional profile",
-
-      notes: "Brief professional notes",
-      notesPlaceholder: "Optional: brief session observations...",
-      saveRecord: "Save record",
-      copySummary: "Copy summary",
-      downloadSummary: "Download summary",
-      recordSaved: "Record saved.",
-      noAdaptedText: "Generate a Koda response first.",
-      historyEmpty: "No records saved yet.",
-      deleteRecord: "Delete",
-      clearHistory: "Clear history",
-      exportInfo:
-        "Koda stores lightweight records. Full documents stay in Drive, cloud storage, or the professional’s own system.",
-      mustLogin: "Sign in to save records in your professional account.",
-      copied: "Copied.",
-      copyError: "Could not copy automatically.",
-      loading: "Loading...",
-    },
-  }[language];
+  const selectedCharacter = useMemo(
+    () => characterOptions.find((item) => item.id === session.characterId) || characterOptions[0],
+    [session.characterId]
+  );
 
   useEffect(() => {
     let mounted = true;
 
     async function initAuth() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      try {
+        const { data, error } = await supabase.auth.getSession();
 
-      if (!mounted) return;
+        if (error) {
+          console.error("KODA SESSION ERROR:", error);
+          if (mounted) setMessage(error.message);
+        }
 
-      if (session?.user) {
-        setAuthUser(session.user);
-        setIsProfessionalRegistered(true);
-        await loadProfessionalData(session.user.id);
+        if (!mounted) return;
+
+        setAuthReady(true);
+
+        if (data?.session?.user) {
+          setUser(data.session.user);
+          setScreen("dashboard");
+          loadProfessionalData(data.session.user).catch((profileError) => console.error("KODA LOAD PROFILE ERROR:", profileError));
+          loadRecords(data.session.user.id).catch((recordsError) => console.error("KODA LOAD RECORDS ERROR:", recordsError));
+        } else {
+          setScreen("welcome");
+        }
+      } catch (error) {
+        console.error("KODA INIT AUTH ERROR:", error);
+        if (mounted) {
+          setAuthReady(true);
+          setScreen("welcome");
+          setMessage(error.message || "Auth error");
+        }
       }
-
-      setIsAuthLoading(false);
     }
 
-    initAuth();
+    const fallbackTimer = setTimeout(() => {
+      if (mounted) {
+        setAuthReady(true);
+        setScreen((current) => current || "welcome");
+      }
+    }, 2500);
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    initAuth().finally(() => clearTimeout(fallbackTimer));
+
+    const { data } = supabase.auth.onAuthStateChange((event, sessionData) => {
       if (!mounted) return;
 
-      if (session?.user) {
-        setAuthUser(session.user);
-        setIsProfessionalRegistered(true);
-        await loadProfessionalData(session.user.id);
-      }
-
       if (event === "SIGNED_OUT") {
-        setAuthUser(null);
-        setIsProfessionalRegistered(false);
-        setProfessionalProfile(emptyProfessionalProfile);
+        setUser(null);
+        setProfile(emptyProfile);
         setRecords([]);
         setScreen("welcome");
+        return;
+      }
+
+      if (event === "SIGNED_IN" && sessionData?.user) {
+        setUser(sessionData.user);
+        setScreen("dashboard");
+        loadProfessionalData(sessionData.user).catch((error) => console.error("KODA AUTH PROFILE ERROR:", error));
+        loadRecords(sessionData.user.id).catch((error) => console.error("KODA AUTH RECORDS ERROR:", error));
       }
     });
 
     return () => {
       mounted = false;
-      subscription?.unsubscribe?.();
+      clearTimeout(fallbackTimer);
+      data?.subscription?.unsubscribe?.();
     };
   }, []);
 
-  function stopAudio() {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      audioRef.current = null;
+  useEffect(() => {
+    setProfile((current) => ({ ...current, preferredLanguage: language }));
+  }, [language]);
+
+  async function loadProfessionalData(authUser) {
+    if (!authUser?.id) return;
+
+    const { data, error } = await supabase.from("profiles").select("*").eq("id", authUser.id).maybeSingle();
+
+    if (error) {
+      console.error("KODA PROFILE SELECT ERROR:", error);
+      setProfile(normalizeProfile(null, authUser));
+      return;
     }
 
-    window.speechSynthesis?.cancel?.();
-    setIsSpeaking(false);
-    setStatusMessage(language === "es" ? "Listo" : "Ready");
-  }
+    const nextProfile = normalizeProfile(data, authUser);
+    setProfile(nextProfile);
 
-  async function handleLanguageChange(newLanguage) {
-    stopAudio();
-    setLanguage(newLanguage);
-    setAdaptedText("");
-    setLastSavedMessage("");
-    setStatusMessage(newLanguage === "es" ? "Listo" : "Ready");
-
-    setProfessionalProfile((current) => ({
-      ...current,
-      preferredLanguage: newLanguage,
-    }));
-
-    if (authUser) {
-      await supabase
-        .from("profiles")
-        .update({
-          preferred_language: newLanguage,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", authUser.id);
-    }
-
-    if (newLanguage === "es") {
-      setIntention("Explorar emoción");
-      setTherapistText("¿Puedes contarme qué pasó cuando tu papá te gritó?");
-    } else {
-      setIntention("Explore emotion");
-      setTherapistText("Can you tell me what happened when your dad yelled?");
+    if (nextProfile.preferredLanguage === "es" || nextProfile.preferredLanguage === "en") {
+      setLanguage(nextProfile.preferredLanguage);
     }
   }
 
-  async function loadProfessionalData(userId) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
+  async function loadRecords(userId = user?.id) {
+    if (!userId) return;
 
-    const preferredLanguage = profile?.preferred_language || language || "es";
-
-    if (profile) {
-      setProfessionalProfile({
-        name: profile.name || "",
-        email: profile.email || "",
-        specialty: profile.specialty || "",
-        country: profile.country || "",
-        practiceType: profile.practice_type || "",
-        preferredLanguage,
-      });
-
-      setLanguage(preferredLanguage);
-    }
-
-    const { data: savedRecords } = await supabase
-      .from("session_records")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false });
-
-    setRecords(
-      savedRecords?.map((record) =>
-        mapDatabaseRecord(record, preferredLanguage)
-      ) || []
-    );
-  }
-
-  async function saveProfessionalProfile() {
+    setRecordsBusy(true);
     try {
-      setLastSavedMessage("");
+      const { data, error } = await supabase
+        .from("session_records")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(40);
 
-      if (
-        !professionalProfile.name.trim() ||
-        !professionalProfile.email.trim()
-      ) {
-        setLastSavedMessage(t.requiredProfile);
+      if (error) throw error;
+      setRecords(data || []);
+    } catch (error) {
+      console.error("KODA RECORDS ERROR:", error);
+      setMessage(error.message || "Error loading records");
+    } finally {
+      setRecordsBusy(false);
+    }
+  }
+
+  async function createProfessionalAccount(form) {
+    try {
+      setBusy(true);
+      setMessage("");
+
+      if (!form.name.trim() || !form.email.trim()) {
+        setMessage(labels.requiredProfile);
         return;
       }
 
-      if (!password || password.length < 6) {
-        setLastSavedMessage(t.minPassword);
+      if (!form.password || form.password.length < 6) {
+        setMessage(labels.minPassword);
         return;
       }
 
       const profileData = {
-        name: professionalProfile.name.trim(),
-        email: professionalProfile.email.trim(),
-        specialty: professionalProfile.specialty || "",
-        country: professionalProfile.country || "",
-        practice_type: professionalProfile.practiceType || "",
+        name: form.name.trim(),
+        email: form.email.trim().toLowerCase(),
+        specialty: form.specialty.trim(),
+        country: form.country.trim(),
+        practice_type: form.practiceType.trim(),
         preferred_language: language,
       };
 
       const { data, error } = await supabase.auth.signUp({
         email: profileData.email,
-        password,
-        options: {
-          data: profileData,
-        },
+        password: form.password,
+        options: { data: profileData },
       });
 
       if (error) throw error;
 
-      if (!data.session) {
-        setLastSavedMessage(
-          language === "es"
-            ? "Cuenta creada. Revisa tu correo para confirmar el acceso."
-            : "Account created. Check your email to confirm access."
-        );
+      if (!data?.session) {
+        setMessage(labels.accountCreatedConfirm);
+        setAuthMode("login");
         return;
       }
 
-      const userId = data.user.id;
+      const authUser = data.user;
+      setUser(authUser);
 
       const { error: profileError } = await supabase.from("profiles").upsert({
-        id: userId,
+        id: authUser.id,
         ...profileData,
         updated_at: new Date().toISOString(),
       });
 
       if (profileError) throw profileError;
 
-      setAuthUser(data.user);
-      setIsProfessionalRegistered(true);
-      setPassword("");
-      setLastSavedMessage(t.profileSaved);
-
-      await loadProfessionalData(userId);
+      await loadProfessionalData(authUser);
+      await loadRecords(authUser.id);
       setScreen("dashboard");
     } catch (error) {
       console.error("KODA REGISTER ERROR:", error);
-      setLastSavedMessage(
-        error.message ||
-          (language === "es"
-            ? "Error al crear cuenta."
-            : "Error creating account.")
-      );
+      setMessage(error.message || "Error creating account");
+    } finally {
+      setBusy(false);
     }
   }
 
-  async function loginProfessional() {
+  async function loginProfessional(form) {
     try {
-      setLastSavedMessage("");
+      setBusy(true);
+      setMessage("");
 
-      if (!professionalProfile.email.trim() || !password) {
-        setLastSavedMessage(t.emailPasswordRequired);
+      if (!form.email.trim() || !form.password) {
+        setMessage(labels.requiredLogin);
         return;
       }
 
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: professionalProfile.email.trim(),
-        password,
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
       });
 
       if (error) throw error;
 
-      setAuthUser(data.user);
-      setIsProfessionalRegistered(true);
-      setPassword("");
+      if (!data?.user) {
+        setMessage(language === "es" ? "Supabase no regresó usuario." : "Supabase did not return a user.");
+        return;
+      }
 
-      await loadProfessionalData(data.user.id);
+      setUser(data.user);
       setScreen("dashboard");
+      await loadProfessionalData(data.user);
+      await loadRecords(data.user.id);
     } catch (error) {
       console.error("KODA LOGIN ERROR:", error);
-      setLastSavedMessage(t.loginError);
+      setMessage(error.message || "Login error");
+    } finally {
+      setBusy(false);
     }
   }
 
-  async function updateProfessionalProfile() {
+  async function updateProfessionalProfile(form) {
+    if (!user?.id) {
+      setMessage(labels.mustLogin);
+      return;
+    }
+
     try {
-      if (!authUser) {
-        setLastSavedMessage(t.mustLogin);
+      setBusy(true);
+      setMessage("");
+
+      if (!form.name?.trim() || !form.email?.trim()) {
+        setMessage(labels.requiredProfile);
         return;
       }
 
-      if (
-        !professionalProfile.name.trim() ||
-        !professionalProfile.email.trim()
-      ) {
-        setLastSavedMessage(t.requiredProfile);
-        return;
-      }
-
-      const profileData = {
-        id: authUser.id,
-        email: professionalProfile.email.trim(),
-        name: professionalProfile.name.trim(),
-        specialty: professionalProfile.specialty || "",
-        country: professionalProfile.country || "",
-        practice_type: professionalProfile.practiceType || "",
+      const payload = {
+        id: user.id,
+        name: form.name.trim(),
+        email: form.email.trim().toLowerCase(),
+        specialty: form.specialty?.trim() || "",
+        country: form.country?.trim() || "",
+        practice_type: form.practiceType?.trim() || "",
         preferred_language: language,
         updated_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase.from("profiles").upsert(profileData);
-
+      const { error } = await supabase.from("profiles").upsert(payload);
       if (error) throw error;
 
-      setLastSavedMessage(
-        language === "es"
-          ? "Perfil actualizado correctamente."
-          : "Profile updated successfully."
-      );
+      setProfile(normalizeProfile(payload, user));
+      setMessage(labels.profileSaved);
       setScreen("dashboard");
     } catch (error) {
       console.error("KODA PROFILE UPDATE ERROR:", error);
-      setLastSavedMessage(error.message || "Error");
+      setMessage(error.message || "Profile error");
+    } finally {
+      setBusy(false);
     }
   }
 
   async function signOutProfessional() {
     stopAudio();
-    await supabase.auth.signOut();
+    setBusy(true);
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setProfile(emptyProfile);
+      setRecords([]);
+      setScreen("welcome");
+    } catch (error) {
+      console.error("KODA SIGNOUT ERROR:", error);
+      setMessage(error.message || "Sign out error");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function adaptWithKoda() {
-    const cleanText = therapistText.trim();
-
-    if (!cleanText) {
-      throw new Error(
-        language === "es"
-          ? "Escribe una frase del profesional."
-          : "Write a professional phrase."
-      );
-    }
-
-    const response = await fetch("/api/adapt", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        text: cleanText,
-        childName,
-        age,
-        language,
-        intention,
-        character: language === "es" ? character.es : character.en,
-      }),
-    });
-
-    const rawBody = await response.text();
-
-    if (!response.ok) {
-      throw new Error(`API ERROR ${response.status}: ${rawBody}`);
-    }
-
-    let data;
-
-    try {
-      data = JSON.parse(rawBody);
-    } catch {
-      throw new Error(`Respuesta no JSON: ${rawBody}`);
-    }
-
-    if (!data.adaptedText) {
-      throw new Error(`La API no regresó adaptedText: ${rawBody}`);
-    }
-
-    return cleanForSpeech(data.adaptedText);
-  }
-
-  async function speakWithKoda(textToSpeak) {
-    const cleanText = cleanForSpeech(textToSpeak);
-
-    if (!cleanText) {
-      throw new Error(
-        language === "es"
-          ? "No hay texto para reproducir."
-          : "There is no text to play."
-      );
-    }
-
-    const response = await fetch("/api/speak", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        text: cleanText,
-        language,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      throw new Error(`VOICE API ERROR ${response.status}: ${errorBody}`);
-    }
-
-    const audioBlob = await response.blob();
-
-    if (!audioBlob || audioBlob.size === 0) {
-      throw new Error(
-        language === "es"
-          ? "ElevenLabs regresó audio vacío."
-          : "ElevenLabs returned empty audio."
-      );
-    }
-
-    const audioUrl = URL.createObjectURL(audioBlob);
-    const audio = new Audio(audioUrl);
-
-    audioRef.current = audio;
-
-    audio.onplay = () => {
-      setIsSpeaking(true);
-      setStatusMessage(t.speaking);
-    };
-
-    audio.onended = () => {
-      setIsSpeaking(false);
-      setStatusMessage(t.ready);
-      URL.revokeObjectURL(audioUrl);
-    };
-
-    audio.onerror = () => {
-      setIsSpeaking(false);
-      setStatusMessage(t.error);
-      URL.revokeObjectURL(audioUrl);
-    };
-
-    await audio.play();
-  }
-
-  async function handleTalkWithKoda() {
-    try {
-      stopAudio();
-      setIsWorking(true);
-      setAdaptedText("");
-      setLastSavedMessage("");
-      setStatusMessage(t.thinking);
-
-      const result = await adaptWithKoda();
-
-      setAdaptedText(result);
-      setStatusMessage(t.generatingVoice);
-
-      try {
-        await speakWithKoda(result);
-      } catch (voiceError) {
-        console.warn("KODA VOICE WARNING:", voiceError);
-        setIsSpeaking(false);
-        setStatusMessage(t.premiumPending);
-      }
-
-      setIsWorking(false);
-    } catch (error) {
-      console.error("KODA ERROR:", error);
-
-      setIsWorking(false);
-      setIsSpeaking(false);
-      setStatusMessage(t.error);
-
-      setAdaptedText(
-        language === "es"
-          ? `ERROR REAL: ${error.message}`
-          : `REAL ERROR: ${error.message}`
-      );
-    }
-  }
-
-  function createCurrentRecord() {
-    const now = new Date();
-
-    return {
-      id: `${Date.now()}`,
-      professionalName: professionalProfile.name,
-      professionalEmail: professionalProfile.email,
-      childName,
-      age,
-      language,
-      character: language === "es" ? character.es : character.en,
-      intention,
-      therapistText,
-      adaptedText,
-      notes: sessionNotes,
-      dateISO: now.toISOString(),
-      dateLabel: now.toLocaleString(language === "es" ? "es-MX" : "en-US", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }),
-    };
-  }
-
-  async function saveSessionRecord() {
-    try {
-      setLastSavedMessage("");
-
-      if (!authUser) {
-        setLastSavedMessage(t.mustLogin);
-        setAuthMode("login");
-        setScreen("register");
-        return;
-      }
-
-      if (
-        !adaptedText ||
-        adaptedText.startsWith("ERROR") ||
-        adaptedText.startsWith("REAL ERROR")
-      ) {
-        setLastSavedMessage(t.noAdaptedText);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("session_records")
-        .insert({
-          user_id: authUser.id,
-          child_name: childName,
-          age,
-          language,
-          character: language === "es" ? character.es : character.en,
-          intention,
-          therapist_text: therapistText,
-          adapted_text: adaptedText,
-          notes: sessionNotes,
-        })
-        .select("*")
-        .single();
-
-      if (error) throw error;
-
-      const mappedRecord = mapDatabaseRecord(data, language);
-
-      setRecords([mappedRecord, ...records]);
-      setLastSavedMessage(t.recordSaved);
-    } catch (error) {
-      console.error("KODA SAVE RECORD ERROR:", error);
-      setLastSavedMessage(error.message || "Error");
-    }
-  }
-
-  async function copyText(text) {
-    try {
-      await navigator.clipboard.writeText(text);
-      setLastSavedMessage(t.copied);
-    } catch {
-      setLastSavedMessage(t.copyError);
-    }
-  }
-
-  function downloadTextFile(text, filename = "koda-registro.txt") {
-    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-
-    URL.revokeObjectURL(url);
-  }
-
-  function copyCurrentSummary() {
-    if (
-      !adaptedText ||
-      adaptedText.startsWith("ERROR") ||
-      adaptedText.startsWith("REAL ERROR")
-    ) {
-      setLastSavedMessage(t.noAdaptedText);
+    if (!session.therapistText.trim()) {
+      setMessage(labels.writePhrase);
       return;
     }
 
-    copyText(formatRecord(createCurrentRecord(), language));
+    setRecordsBusy(true);
+    setMessage("");
+
+    const fallback = localAdaptMessage({
+      text: session.therapistText,
+      childName: session.childName,
+      intention: session.intention,
+      language,
+    });
+
+    try {
+      const response = await fetch("/api/adapt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          language,
+          childName: session.childName,
+          age: session.age,
+          character: selectedCharacter,
+          characterId: session.characterId,
+          intention: session.intention,
+          therapistText: session.therapistText,
+        }),
+      });
+
+      if (!response.ok) throw new Error(`API adapt ${response.status}`);
+
+      const data = await response.json();
+      const adapted = data.adaptedText || data.text || data.message || data.output || data.result || fallback;
+      setSession((current) => ({ ...current, adaptedText: adapted }));
+    } catch (error) {
+      console.warn("KODA ADAPT FALLBACK:", error);
+      setSession((current) => ({ ...current, adaptedText: fallback }));
+      setMessage(labels.apiFallback);
+    } finally {
+      setRecordsBusy(false);
+    }
+  }
+
+  function stopAudio() {
+    try {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        audioRef.current = null;
+      }
+
+      if (audioUrlRef.current) {
+        URL.revokeObjectURL(audioUrlRef.current);
+        audioUrlRef.current = null;
+      }
+
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    } catch (error) {
+      console.warn("KODA STOP AUDIO ERROR:", error);
+    } finally {
+      setAudioPlaying(false);
+    }
+  }
+
+  function cleanTextForVoice(value = "") {
+    return String(value)
+      .replace(/\p{Extended_Pictographic}/gu, "")
+      .replace(/[\u{1F1E6}-\u{1F1FF}]/gu, "")
+      .replace(/[\u200D\uFE0F]/g, "")
+      .replace(/[•·#*_`~>\[\]{}]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  async function speakWithBrowser(textToSpeak) {
+    if (!("speechSynthesis" in window)) return;
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.lang = language === "es" ? "es-MX" : "en-US";
+    utterance.rate = 0.92;
+    utterance.pitch = session.characterId === "bear" ? 1.15 : 1.25;
+    utterance.volume = 1;
+    utterance.onstart = () => setAudioPlaying(true);
+    utterance.onend = () => setAudioPlaying(false);
+    utterance.onerror = () => setAudioPlaying(false);
+    window.speechSynthesis.speak(utterance);
+  }
+
+  async function speakWithKoda() {
+    const rawTextToSpeak = session.adaptedText || session.therapistText;
+    const textToSpeak = cleanTextForVoice(rawTextToSpeak);
+    if (!rawTextToSpeak.trim()) {
+      setMessage(labels.writePhrase);
+      return;
+    }
+    if (!textToSpeak.trim()) {
+      setMessage(labels.writePhrase);
+      return;
+    }
+
+    stopAudio();
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/speak", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: textToSpeak, language, characterId: session.characterId }),
+      });
+
+      if (!response.ok) throw new Error(`API speak ${response.status}`);
+
+      const contentType = response.headers.get("content-type") || "";
+
+      if (contentType.includes("application/json")) {
+        const data = await response.json();
+        if (data.audioUrl) {
+          const audio = new Audio(data.audioUrl);
+          audioRef.current = audio;
+          audio.onplay = () => setAudioPlaying(true);
+          audio.onended = () => setAudioPlaying(false);
+          audio.onerror = () => setAudioPlaying(false);
+          await audio.play();
+          return;
+        }
+        throw new Error("No audioUrl in JSON response");
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      audioUrlRef.current = url;
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onplay = () => setAudioPlaying(true);
+      audio.onended = () => setAudioPlaying(false);
+      audio.onerror = () => setAudioPlaying(false);
+      await audio.play();
+    } catch (error) {
+      console.warn("KODA VOICE FALLBACK:", error);
+      setMessage(labels.voiceFallback);
+      await speakWithBrowser(textToSpeak);
+    }
+  }
+
+  function buildSummary() {
+    const character = characterOptions.find((item) => item.id === session.characterId) || characterOptions[0];
+    const intention = intentionOptions.find((item) => item.id === session.intention);
+
+    return [
+      "KODA - RESUMEN DE SESIÓN",
+      "",
+      `${labels.activeProfessional}: ${profile.name || user?.email || ""}`,
+      `${labels.childName}: ${session.childName}`,
+      `${labels.age}: ${session.age}`,
+      `${labels.character}: ${language === "es" ? character.es : character.en}`,
+      `${labels.intention}: ${language === "es" ? intention?.es : intention?.en}`,
+      "",
+      `${labels.therapistPhrase}:`,
+      session.therapistText,
+      "",
+      `${labels.kodaWouldSay}`,
+      session.adaptedText,
+      "",
+      `${labels.notes}:`,
+      session.notes || "",
+      "",
+      labels.legal,
+    ].join("\n");
+  }
+
+  async function copyCurrentSummary() {
+    try {
+      await navigator.clipboard.writeText(buildSummary());
+      setMessage(labels.copied);
+    } catch (error) {
+      console.error("KODA COPY ERROR:", error);
+      setMessage(error.message || "Copy error");
+    }
   }
 
   function downloadCurrentSummary() {
-    if (
-      !adaptedText ||
-      adaptedText.startsWith("ERROR") ||
-      adaptedText.startsWith("REAL ERROR")
-    ) {
-      setLastSavedMessage(t.noAdaptedText);
+    const blob = new Blob([buildSummary()], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `koda-${session.childName || "session"}-${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  async function saveSessionRecord() {
+    if (!user?.id) {
+      setMessage(labels.mustLogin);
       return;
     }
 
-    const safeName = (childName || "koda")
-      .toLowerCase()
-      .replace(/[^a-z0-9áéíóúñ]+/gi, "-")
-      .replace(/^-|-$/g, "");
-
-    downloadTextFile(
-      formatRecord(createCurrentRecord(), language),
-      `koda-${safeName || "registro"}-${Date.now()}.txt`
-    );
-  }
-
-  async function deleteRecord(recordId) {
-    if (authUser) {
-      await supabase
-        .from("session_records")
-        .delete()
-        .eq("id", recordId)
-        .eq("user_id", authUser.id);
+    if (!session.adaptedText.trim()) {
+      await adaptWithKoda();
     }
 
-    setRecords(records.filter((record) => record.id !== recordId));
-  }
+    const adaptedToSave = session.adaptedText || localAdaptMessage({
+      text: session.therapistText,
+      childName: session.childName,
+      intention: session.intention,
+      language,
+    });
 
-  async function clearHistory() {
-    if (authUser) {
-      await supabase
-        .from("session_records")
-        .delete()
-        .eq("user_id", authUser.id);
+    setRecordsBusy(true);
+    setMessage("");
+
+    try {
+      const payload = {
+        user_id: user.id,
+        child_name: session.childName,
+        age: session.age,
+        language,
+        character: session.characterId,
+        intention: session.intention,
+        therapist_text: session.therapistText,
+        adapted_text: adaptedToSave,
+        notes: session.notes,
+      };
+
+      const { error } = await supabase.from("session_records").insert(payload);
+      if (error) throw error;
+
+      setSession((current) => ({ ...current, adaptedText: adaptedToSave }));
+      await loadRecords(user.id);
+      setMessage(labels.saved);
+    } catch (error) {
+      console.error("KODA SAVE RECORD ERROR:", error);
+      setMessage(error.message || "Save error");
+    } finally {
+      setRecordsBusy(false);
     }
-
-    setRecords([]);
   }
 
-  function WelcomeScreen() {
+  function openSignup() {
+    setAuthMode("signup");
+    setMessage("");
+    setScreen("auth");
+  }
+
+  function openLogin() {
+    setAuthMode("login");
+    setMessage("");
+    setScreen("auth");
+  }
+
+  function clearMessage() {
+    setMessage("");
+  }
+
+  function startNewSession() {
+    setSession((current) => ({ ...initialSession, childName: current.childName || initialSession.childName, age: current.age || initialSession.age }));
+    setMessage("");
+    setScreen("engine");
+  }
+
+  if (!authReady) {
+    return <LoadingScreen labels={labels} />;
+  }
+
+  if (screen === "auth") {
     return (
-      <main className="min-h-screen bg-[#F8EFE3] text-[#2C241D]">
-        <section className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-3 py-4">
-          <div className="relative w-full overflow-hidden rounded-[2.5rem] bg-white shadow-2xl">
-            <img
-              src="/koda-cover.png"
-              alt="Koda portada"
-              className="pointer-events-none block w-full select-none"
-              draggable="false"
-            />
-
-            <div className="absolute right-[7%] top-[4%] z-30 flex gap-2 rounded-2xl bg-white/85 p-2 shadow-lg backdrop-blur-sm">
-              <button
-                type="button"
-                onClick={() => handleLanguageChange("es")}
-                className={`rounded-xl px-3 py-2 text-sm font-black ${
-                  language === "es"
-                    ? "bg-[#2C241D] text-white"
-                    : "bg-[#FFF1DC] text-[#2C241D]"
-                }`}
-              >
-                ES
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleLanguageChange("en")}
-                className={`rounded-xl px-3 py-2 text-sm font-black ${
-                  language === "en"
-                    ? "bg-[#2C241D] text-white"
-                    : "bg-[#FFF1DC] text-[#2C241D]"
-                }`}
-              >
-                EN
-              </button>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setAuthMode("signup");
-                setLastSavedMessage("");
-                setScreen("register");
-              }}
-              className="absolute left-[16%] top-[68.5%] z-30 flex h-[7.5%] w-[68%] items-center justify-center rounded-[2rem] bg-[#B57B2B] px-3 text-center text-base font-black text-white shadow-xl transition hover:bg-[#9E6A22] active:scale-[0.98]"
-            >
-              {t.start} ✨
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setAuthMode("login");
-                setLastSavedMessage("");
-                setScreen("register");
-              }}
-              className="absolute left-[16%] top-[77.2%] z-30 flex h-[7.5%] w-[68%] items-center justify-center rounded-[2rem] border border-[#E1C9AB] bg-white/90 px-3 text-center text-base font-black text-[#5C4A3F] shadow-lg transition hover:bg-white active:scale-[0.98]"
-            >
-              {t.login}
-            </button>
-          </div>
-        </section>
-      </main>
+      <AuthScreen
+        mode={authMode}
+        labels={labels}
+        language={language}
+        setLanguage={setLanguage}
+        initialProfile={profile}
+        busy={busy}
+        message={message}
+        onClear={clearMessage}
+        onBack={() => setScreen("welcome")}
+        onSubmit={authMode === "login" ? loginProfessional : createProfessionalAccount}
+        onSwitchMode={() => {
+          setMessage("");
+          setAuthMode((current) => (current === "login" ? "signup" : "login"));
+        }}
+      />
     );
   }
 
-  function RegisterScreen() {
-    const isLogin = authMode === "login";
-
+  if (screen === "dashboard" && user) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-[#FFF8EE] via-[#F7EFE4] to-[#F2E4D5] px-4 py-6 text-[#2C241D]">
-        <section className="mx-auto max-w-3xl">
-          <button
-            type="button"
-            onClick={() => setScreen("welcome")}
-            className="mb-5 rounded-2xl bg-white/80 px-4 py-3 font-bold shadow"
-          >
-            {t.back}
-          </button>
-
-          <div className="rounded-[2.5rem] bg-white/85 p-6 shadow-2xl md:p-8">
-            <div className="mb-6 flex items-center gap-4">
-              <div className="grid h-20 w-20 place-items-center rounded-3xl bg-[#FFF1DC] text-5xl">
-                🧸
-              </div>
-
-              <div>
-                <h1 className="text-3xl font-black md:text-5xl">
-                  {isLogin ? t.loginTitle : t.registerTitle}
-                </h1>
-                <p className="mt-2 text-[#6E6258]">
-                  {isLogin ? t.loginSubtitle : t.registerSubtitle}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              {!isLogin && (
-                <label className="md:col-span-2">
-                  <span className="mb-2 block text-sm font-bold text-[#6E6258]">
-                    {t.fullName}
-                  </span>
-                  <input
-                    value={professionalProfile.name}
-                    onChange={(event) =>
-                      setProfessionalProfile((current) => ({
-                        ...current,
-                        name: event.target.value,
-                      }))
-                    }
-                    className="w-full rounded-2xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]"
-                  />
-                </label>
-              )}
-
-              <label>
-                <span className="mb-2 block text-sm font-bold text-[#6E6258]">
-                  {t.email}
-                </span>
-                <input
-                  type="email"
-                  value={professionalProfile.email}
-                  onChange={(event) =>
-                    setProfessionalProfile((current) => ({
-                      ...current,
-                      email: event.target.value,
-                    }))
-                  }
-                  className="w-full rounded-2xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]"
-                />
-              </label>
-
-              <label>
-                <span className="mb-2 block text-sm font-bold text-[#6E6258]">
-                  {t.password}
-                </span>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  className="w-full rounded-2xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]"
-                />
-              </label>
-
-              {!isLogin && (
-                <>
-                  <label>
-                    <span className="mb-2 block text-sm font-bold text-[#6E6258]">
-                      {t.specialty}
-                    </span>
-                    <input
-                      value={professionalProfile.specialty}
-                      onChange={(event) =>
-                        setProfessionalProfile((current) => ({
-                          ...current,
-                          specialty: event.target.value,
-                        }))
-                      }
-                      placeholder="Psicología infantil / Terapia de lenguaje..."
-                      className="w-full rounded-2xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]"
-                    />
-                  </label>
-
-                  <label>
-                    <span className="mb-2 block text-sm font-bold text-[#6E6258]">
-                      {t.country}
-                    </span>
-                    <input
-                      value={professionalProfile.country}
-                      onChange={(event) =>
-                        setProfessionalProfile((current) => ({
-                          ...current,
-                          country: event.target.value,
-                        }))
-                      }
-                      className="w-full rounded-2xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]"
-                    />
-                  </label>
-
-                  <label>
-                    <span className="mb-2 block text-sm font-bold text-[#6E6258]">
-                      {t.practiceType}
-                    </span>
-                    <input
-                      value={professionalProfile.practiceType}
-                      onChange={(event) =>
-                        setProfessionalProfile((current) => ({
-                          ...current,
-                          practiceType: event.target.value,
-                        }))
-                      }
-                      placeholder="Consulta privada / Clínica / Escuela..."
-                      className="w-full rounded-2xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]"
-                    />
-                  </label>
-
-                  <label>
-                    <span className="mb-2 block text-sm font-bold text-[#6E6258]">
-                      {t.preferredLanguage}
-                    </span>
-                    <select
-                      value={language}
-                      onChange={(event) =>
-                        handleLanguageChange(event.target.value)
-                      }
-                      className="w-full rounded-2xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]"
-                    >
-                      <option value="es">Español</option>
-                      <option value="en">English</option>
-                    </select>
-                  </label>
-                </>
-              )}
-            </div>
-
-            {lastSavedMessage && (
-              <p className="mt-5 rounded-2xl bg-[#FFF1DC] px-4 py-3 font-bold text-[#6E4F36]">
-                {lastSavedMessage}
-              </p>
-            )}
-
-            <button
-              type="button"
-              onClick={isLogin ? loginProfessional : saveProfessionalProfile}
-              className="mt-6 w-full rounded-[2rem] bg-[#2C241D] px-6 py-4 text-lg font-black text-white shadow-xl hover:bg-[#46382C]"
-            >
-              {isLogin ? t.loginButton : t.saveProfile}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setAuthMode(isLogin ? "signup" : "login");
-                setLastSavedMessage("");
-              }}
-              className="mt-4 w-full rounded-[2rem] border border-[#E1C9AB] bg-white px-6 py-4 text-lg font-black text-[#5C4A3F] shadow-lg hover:bg-[#FFF8EE]"
-            >
-              {isLogin ? t.needCreateProfile : t.alreadyHaveProfile}
-            </button>
-          </div>
-        </section>
-      </main>
+      <DashboardScreen
+        labels={labels}
+        language={language}
+        setLanguage={setLanguage}
+        user={user}
+        profile={profile}
+        message={message}
+        onClear={clearMessage}
+        onNewSession={startNewSession}
+        onHistory={() => {
+          loadRecords(user.id);
+          setScreen("history");
+        }}
+        onProfile={() => setScreen("profile")}
+        onSignOut={signOutProfessional}
+      />
     );
   }
 
-  function DashboardScreen() {
+  if (screen === "engine" && user) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-[#FFF8EE] via-[#F7EFE4] to-[#F2E4D5] px-4 py-6 text-[#2C241D]">
-        <section className="mx-auto max-w-5xl">
-          <div className="mb-6 flex items-center justify-between gap-4">
-            <div>
-              <div className="mb-2 inline-flex rounded-full bg-white/80 px-4 py-2 text-sm font-bold shadow">
-                🧸 Koda
-              </div>
-
-              <h1 className="text-4xl font-black md:text-6xl">
-                {t.dashboardTitle}
-              </h1>
-
-              <p className="mt-2 max-w-2xl text-lg text-[#6E6258]">
-                {t.dashboardSubtitle}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setScreen("welcome")}
-              className="rounded-2xl bg-white/80 px-4 py-3 font-bold shadow"
-            >
-              {t.back}
-            </button>
-          </div>
-
-          <div className="mb-5 rounded-[2rem] bg-white/80 p-5 shadow-xl">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-sm font-bold text-[#6E6258]">
-                  {t.profileTitle}
-                </p>
-                <h2 className="text-2xl font-black">
-                  {professionalProfile.name || "Profesional Koda"}
-                </h2>
-                <p className="text-[#6E6258]">
-                  {professionalProfile.specialty || "Especialidad pendiente"} ·{" "}
-                  {professionalProfile.email || "Correo pendiente"}
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthMode("signup");
-                    setScreen("register");
-                  }}
-                  className="rounded-2xl bg-[#FFF1DC] px-4 py-3 font-black"
-                >
-                  {t.updateProfile}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={signOutProfessional}
-                  className="rounded-2xl bg-white px-4 py-3 font-black shadow"
-                >
-                  {t.signOut}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-5 md:grid-cols-3">
-            <button
-              type="button"
-              onClick={() => setScreen("engine")}
-              className="rounded-[2rem] bg-[#2C241D] p-6 text-left text-white shadow-xl transition hover:scale-[1.01]"
-            >
-              <div className="text-5xl">✨</div>
-              <h2 className="mt-5 text-2xl font-black">{t.newSession}</h2>
-              <p className="mt-2 text-white/70">{t.continueSession}</p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setScreen("history")}
-              className="rounded-[2rem] bg-white/80 p-6 text-left shadow-xl transition hover:scale-[1.01]"
-            >
-              <div className="text-5xl">📁</div>
-              <h2 className="mt-5 text-2xl font-black">{t.savedRecords}</h2>
-              <p className="mt-2 text-[#6E6258]">
-                {records.length} registros
-              </p>
-            </button>
-
-            <div className="rounded-[2rem] bg-[#F7E7D1] p-6 shadow-xl">
-              <div className="text-4xl">🛡️</div>
-              <h2 className="mt-5 text-xl font-black">Koda Light</h2>
-              <p className="mt-2 text-[#6E4F36]">{t.exportInfo}</p>
-            </div>
-          </div>
-        </section>
-      </main>
+      <EngineScreen
+        labels={labels}
+        language={language}
+        setLanguage={setLanguage}
+        user={user}
+        profile={profile}
+        session={session}
+        setSession={setSession}
+        recordsBusy={recordsBusy}
+        audioPlaying={audioPlaying}
+        message={message}
+        onClear={clearMessage}
+        onDashboard={() => setScreen("dashboard")}
+        onProfile={() => setScreen("profile")}
+        onHistory={() => {
+          loadRecords(user.id);
+          setScreen("history");
+        }}
+        onSignOut={signOutProfessional}
+        onAdapt={adaptWithKoda}
+        onSpeak={speakWithKoda}
+        onStopAudio={stopAudio}
+        onSaveRecord={saveSessionRecord}
+        onCopy={copyCurrentSummary}
+        onDownload={downloadCurrentSummary}
+      />
     );
   }
 
-  function EngineScreen() {
+  if (screen === "history" && user) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-[#FFF8EE] via-[#F7EFE4] to-[#F2E4D5] px-4 py-6 text-[#2C241D]">
-        <section className="mx-auto max-w-6xl">
-          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <div className="mb-3 inline-flex rounded-full bg-white/75 px-4 py-2 text-sm font-semibold shadow-sm">
-                🧸 Koda MVP Engine
-              </div>
-
-              <h1 className="text-5xl font-black tracking-tight md:text-7xl">
-                Koda
-              </h1>
-
-              <p className="mt-2 max-w-2xl text-lg text-[#6E6258]">
-                {t.appSubtitle}
-              </p>
-
-              <p className="mt-3 inline-flex rounded-full bg-[#2C241D] px-4 py-2 text-sm font-semibold text-white">
-                ✨ {t.demoMode}
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-3 rounded-3xl bg-white/85 p-4 shadow-xl">
-              <button
-                type="button"
-                onClick={() => setScreen("dashboard")}
-                className="rounded-2xl border border-[#E1C9AB] px-4 py-2 font-bold"
-              >
-                {t.back}
-              </button>
-
-              <div>
-                <label className="mb-2 block text-sm font-bold">
-                  {t.language}
-                </label>
-
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleLanguageChange("es")}
-                    className={`rounded-2xl px-4 py-2 font-bold ${
-                      language === "es"
-                        ? "bg-[#2C241D] text-white"
-                        : "bg-[#FFF1DC]"
-                    }`}
-                  >
-                    Español
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleLanguageChange("en")}
-                    className={`rounded-2xl px-4 py-2 font-bold ${
-                      language === "en"
-                        ? "bg-[#2C241D] text-white"
-                        : "bg-[#FFF1DC]"
-                    }`}
-                  >
-                    English
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
-            <div className="rounded-[2rem] bg-white/85 p-6 shadow-xl">
-              <h2 className="mb-5 text-2xl font-black">🧒 {t.quick}</h2>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <label>
-                  <span className="mb-2 block text-sm font-semibold text-[#6E6258]">
-                    {t.childName}
-                  </span>
-
-                  <input
-                    value={childName}
-                    onChange={(event) => setChildName(event.target.value)}
-                    className="w-full rounded-2xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]"
-                  />
-                </label>
-
-                <label>
-                  <span className="mb-2 block text-sm font-semibold text-[#6E6258]">
-                    {t.age}
-                  </span>
-
-                  <input
-                    value={age}
-                    onChange={(event) => setAge(event.target.value)}
-                    className="w-full rounded-2xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]"
-                  />
-                </label>
-              </div>
-
-              <div className="mt-5">
-                <span className="mb-2 block text-sm font-semibold text-[#6E6258]">
-                  {t.character}
-                </span>
-
-                <div className="grid gap-3 md:grid-cols-3">
-                  {characterOptions.map((option) => (
-                    <button
-                      type="button"
-                      key={option.id}
-                      onClick={() => setCharacterId(option.id)}
-                      className={`rounded-2xl border px-3 py-4 text-left transition ${
-                        characterId === option.id
-                          ? "border-[#C58E55] bg-[#FFF1DC] shadow-md"
-                          : "border-[#E7D8C5] bg-white hover:bg-[#FFF8EE]"
-                      }`}
-                    >
-                      <div className="text-3xl">{option.emoji}</div>
-
-                      <div className="mt-2 text-sm font-bold">
-                        {language === "es" ? option.es : option.en}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <label className="mt-5 block">
-                <span className="mb-2 block text-sm font-semibold text-[#6E6258]">
-                  {t.intention}
-                </span>
-
-                <select
-                  value={intention}
-                  onChange={(event) => setIntention(event.target.value)}
-                  className="w-full rounded-2xl border border-[#E7D8C5] bg-white px-4 py-3 outline-none focus:border-[#C58E55]"
-                >
-                  {intentions[language].map((item) => (
-                    <option key={item}>{item}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="mt-5 block">
-                <span className="mb-2 block text-sm font-semibold text-[#6E6258]">
-                  {t.notes}
-                </span>
-
-                <textarea
-                  value={sessionNotes}
-                  onChange={(event) => setSessionNotes(event.target.value)}
-                  className="min-h-24 w-full resize-none rounded-3xl border border-[#E7D8C5] bg-white px-5 py-4 text-base outline-none focus:border-[#C58E55]"
-                  placeholder={t.notesPlaceholder}
-                />
-              </label>
-
-              <div className="mt-5 rounded-3xl bg-[#F7E7D1] p-4 text-sm leading-relaxed text-[#6E4F36]">
-                🛡️ {t.safety}
-              </div>
-            </div>
-
-            <div className="rounded-[2rem] bg-white/85 p-6 shadow-xl">
-              <div className="mb-5 flex items-center justify-between gap-4">
-                <h2 className="text-2xl font-black">✨ {t.engine}</h2>
-
-                <div
-                  className={`rounded-full px-3 py-1 text-sm font-bold ${
-                    isSpeaking
-                      ? "bg-green-100 text-green-700"
-                      : isWorking
-                      ? "bg-yellow-100 text-yellow-700"
-                      : statusMessage === t.premiumPending
-                      ? "bg-orange-100 text-orange-700"
-                      : "bg-[#FFF1DC]"
-                  }`}
-                >
-                  {statusMessage}
-                </div>
-              </div>
-
-              <label>
-                <span className="mb-2 block text-sm font-semibold text-[#6E6258]">
-                  {t.therapistPhrase}
-                </span>
-
-                <textarea
-                  value={therapistText}
-                  onChange={(event) => setTherapistText(event.target.value)}
-                  className="min-h-40 w-full resize-none rounded-3xl border border-[#E7D8C5] bg-white px-5 py-4 text-base outline-none focus:border-[#C58E55]"
-                  placeholder={t.placeholder}
-                />
-              </label>
-
-              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                <button
-                  type="button"
-                  onClick={handleTalkWithKoda}
-                  disabled={isWorking || isSpeaking}
-                  className="rounded-2xl bg-[#2C241D] px-5 py-3 font-bold text-white shadow-lg hover:bg-[#46382C] disabled:opacity-60"
-                >
-                  ✨ {t.talk}
-                </button>
-
-                {adaptedText &&
-                  !adaptedText.startsWith("ERROR") &&
-                  !adaptedText.startsWith("REAL ERROR") && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={saveSessionRecord}
-                        disabled={isWorking || isSpeaking}
-                        className="rounded-2xl bg-[#B57B2B] px-5 py-3 font-bold text-white shadow-md hover:bg-[#9E6A22] disabled:opacity-60"
-                      >
-                        💾 {t.saveRecord}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={copyCurrentSummary}
-                        className="rounded-2xl bg-white px-5 py-3 font-bold text-[#2C241D] shadow-md"
-                      >
-                        📋 {t.copySummary}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={downloadCurrentSummary}
-                        className="rounded-2xl bg-white px-5 py-3 font-bold text-[#2C241D] shadow-md"
-                      >
-                        ⬇️ {t.downloadSummary}
-                      </button>
-                    </>
-                  )}
-
-                {(isWorking || isSpeaking) && (
-                  <button
-                    type="button"
-                    onClick={stopAudio}
-                    className="rounded-2xl border border-[#D8B489] px-5 py-3 font-bold"
-                  >
-                    {t.stop}
-                  </button>
-                )}
-              </div>
-
-              {lastSavedMessage && (
-                <p className="mt-4 rounded-2xl bg-[#FFF1DC] px-4 py-3 font-bold text-[#6E4F36]">
-                  {lastSavedMessage}
-                </p>
-              )}
-
-              <div className="mt-5 rounded-[2rem] bg-[#2C241D] p-6 text-white shadow-inner">
-                <div className="mb-4 flex items-center gap-4">
-                  <div
-                    className={`grid h-16 w-16 place-items-center rounded-3xl bg-white/15 text-4xl ${
-                      isSpeaking ? "animate-pulse" : ""
-                    }`}
-                  >
-                    {character.emoji}
-                  </div>
-
-                  <div>
-                    <p className="text-sm text-white/60">{t.kodaWouldSay}</p>
-
-                    <p className="text-lg font-bold">
-                      {language === "es" ? character.es : character.en}
-                    </p>
-                  </div>
-                </div>
-
-                <p className="min-h-28 whitespace-pre-wrap text-xl leading-relaxed text-white/90">
-                  {adaptedText || t.empty}
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
+      <HistoryScreen
+        labels={labels}
+        language={language}
+        setLanguage={setLanguage}
+        user={user}
+        profile={profile}
+        records={records}
+        busy={recordsBusy}
+        message={message}
+        onClear={clearMessage}
+        onDashboard={() => setScreen("dashboard")}
+        onProfile={() => setScreen("profile")}
+        onHistory={() => setScreen("history")}
+        onSignOut={signOutProfessional}
+        onRefresh={() => loadRecords(user.id)}
+      />
     );
   }
 
-  function HistoryScreen() {
+  if (screen === "profile" && user) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-[#FFF8EE] via-[#F7EFE4] to-[#F2E4D5] px-4 py-6 text-[#2C241D]">
-        <section className="mx-auto max-w-5xl">
-          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <div className="mb-2 inline-flex rounded-full bg-white/80 px-4 py-2 text-sm font-bold shadow">
-                📁 Koda
-              </div>
-
-              <h1 className="text-4xl font-black md:text-6xl">
-                {t.savedRecords}
-              </h1>
-
-              <p className="mt-2 max-w-2xl text-lg text-[#6E6258]">
-                {t.exportInfo}
-              </p>
-            </div>
-
-            <div className="flex gap-3">
-              {records.length > 0 && (
-                <button
-                  type="button"
-                  onClick={clearHistory}
-                  className="rounded-2xl bg-red-100 px-4 py-3 font-bold text-red-700 shadow"
-                >
-                  {t.clearHistory}
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() => setScreen("dashboard")}
-                className="rounded-2xl bg-white/80 px-4 py-3 font-bold shadow"
-              >
-                {t.back}
-              </button>
-            </div>
-          </div>
-
-          {records.length === 0 ? (
-            <div className="rounded-[2rem] bg-white/85 p-8 text-center shadow-xl">
-              <div className="text-6xl">📁</div>
-              <h2 className="mt-4 text-2xl font-black">{t.historyEmpty}</h2>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {records.map((record) => (
-                <div
-                  key={record.id}
-                  className="rounded-[2rem] bg-white/85 p-5 shadow-xl"
-                >
-                  <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                    <div>
-                      <h2 className="text-2xl font-black">
-                        {record.childName || "Koda"} · {record.age || "N/A"}
-                      </h2>
-                      <p className="text-sm font-bold text-[#6E6258]">
-                        {record.dateLabel} · {record.intention}
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          copyText(
-                            formatRecord(
-                              {
-                                ...record,
-                                professionalName: professionalProfile.name,
-                              },
-                              language
-                            )
-                          )
-                        }
-                        className="rounded-2xl bg-[#FFF1DC] px-4 py-2 font-bold"
-                      >
-                        📋 {t.copySummary}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          downloadTextFile(
-                            formatRecord(
-                              {
-                                ...record,
-                                professionalName: professionalProfile.name,
-                              },
-                              language
-                            ),
-                            `koda-registro-${record.id}.txt`
-                          )
-                        }
-                        className="rounded-2xl bg-[#2C241D] px-4 py-2 font-bold text-white"
-                      >
-                        ⬇️ {t.downloadSummary}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => deleteRecord(record.id)}
-                        className="rounded-2xl bg-red-100 px-4 py-2 font-bold text-red-700"
-                      >
-                        {t.deleteRecord}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="rounded-3xl bg-[#FFF8EE] p-4">
-                      <p className="mb-2 text-sm font-black text-[#6E6258]">
-                        {t.therapistPhrase}
-                      </p>
-                      <p className="leading-relaxed">{record.therapistText}</p>
-                    </div>
-
-                    <div className="rounded-3xl bg-[#2C241D] p-4 text-white">
-                      <p className="mb-2 text-sm font-black text-white/60">
-                        {t.kodaWouldSay}
-                      </p>
-                      <p className="leading-relaxed">{record.adaptedText}</p>
-                    </div>
-                  </div>
-
-                  {record.notes && (
-                    <div className="mt-4 rounded-3xl bg-[#F7E7D1] p-4">
-                      <p className="mb-2 text-sm font-black text-[#6E6258]">
-                        {t.notes}
-                      </p>
-                      <p>{record.notes}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      </main>
+      <ProfileScreen
+        labels={labels}
+        language={language}
+        setLanguage={setLanguage}
+        user={user}
+        profile={profile}
+        busy={busy}
+        message={message}
+        onClear={clearMessage}
+        onDashboard={() => setScreen("dashboard")}
+        onHistory={() => {
+          loadRecords(user.id);
+          setScreen("history");
+        }}
+        onSignOut={signOutProfessional}
+        onSave={updateProfessionalProfile}
+      />
     );
   }
 
-  if (isAuthLoading) {
-    return (
-      <main className="grid min-h-screen place-items-center bg-[#F8EFE3] text-[#2C241D]">
-        <div className="rounded-[2rem] bg-white/85 p-8 text-center shadow-xl">
-          <div className="text-5xl">🧸</div>
-          <p className="mt-4 text-xl font-black">{t.loading}</p>
-        </div>
-      </main>
-    );
-  }
-
-  if (screen === "welcome") return <WelcomeScreen />;
-  if (screen === "register") return <RegisterScreen />;
-  if (screen === "dashboard") return <DashboardScreen />;
-  if (screen === "history") return <HistoryScreen />;
-  return <EngineScreen />;
+  return (
+    <WelcomeScreen
+      labels={labels}
+      language={language}
+      setLanguage={setLanguage}
+      onSignup={openSignup}
+      onLogin={openLogin}
+      message={message}
+      onClear={clearMessage}
+    />
+  );
 }
